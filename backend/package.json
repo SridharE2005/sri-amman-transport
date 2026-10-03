@@ -1,0 +1,24 @@
+{
+  "type": "module",
+  "scripts": {
+    "upload:default-images": "node uploadDefaultImages.js",
+    "migrate:bookings": "node migrateBookings.js",
+    "migrate:booking-ids": "node migrateBookingIds.js",
+    "migrate:admin-history": "node migrateAdminHistory.js",
+    "migrate:drivers": "node migrateDrivers.js"
+  },
+  "dependencies": {
+    "axios": "^1.14.0",
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.7.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.0",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.3.3",
+    "nodemailer": "^8.0.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
