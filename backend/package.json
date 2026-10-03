@@ -5,7 +5,9 @@
     "migrate:bookings": "node migrateBookings.js",
     "migrate:booking-ids": "node migrateBookingIds.js",
     "migrate:admin-history": "node migrateAdminHistory.js",
-    "migrate:drivers": "node migrateDrivers.js"
+    "migrate:drivers": "node migrateDrivers.js",
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "axios": "^1.14.0",
