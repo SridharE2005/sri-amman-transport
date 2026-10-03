@@ -148,6 +148,10 @@ export default function Bookings() {
       .then(([bRes, rRes]) => {
         setBookings(bRes.data || []);
         setCancellationRequests(rRes.data || []);
+        try {
+          localStorage.setItem("admin_last_viewed_bookings", Date.now().toString());
+          window.dispatchEvent(new Event("admin_badges_updated"));
+        } catch {}
       })
       .catch(() => toast.error("Failed to load bookings"))
       .finally(() => setLoading(false));
@@ -162,7 +166,10 @@ export default function Bookings() {
     try {
       const { data } = await API.put(`/bookings/${id}/confirm`);
       setBookings((current) => current.map((booking) => (booking._id === id ? data : booking)));
-      setSelectedBooking((curr) => (curr && curr._id === id ? data : curr));
+      if (window.history.state?.bookingDetailModal) {
+        window.history.replaceState(null, "");
+      }
+      setSelectedBooking(null);
       toast.success(tr("Booking confirmed"));
     } catch (err) {
       toast.error(tr(err.response?.data?.message || "Failed to confirm"));

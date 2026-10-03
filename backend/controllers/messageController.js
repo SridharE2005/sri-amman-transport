@@ -27,6 +27,16 @@ export const replyMessage = async (req, res) => {
   res.json(msg);
 };
 
+// Admin: mark all messages as read
+export const markAllMessagesRead = async (req, res) => {
+  try {
+    await Message.updateMany({ read: { $ne: true } }, { $set: { read: true } });
+    res.json({ message: "All messages marked as read" });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to mark messages as read" });
+  }
+};
+
 // Admin: delete message
 export const deleteMessage = async (req, res) => {
   await Message.findByIdAndDelete(req.params.id);

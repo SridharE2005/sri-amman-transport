@@ -806,7 +806,9 @@ export const reviewCancellationRequest = async (req, res) => {
           },
           { upsert: true, new: true, setDefaultsOnInsert: true }
         ),
+        CancellationRequest.findByIdAndDelete(request._id),
       ]);
+
 
       dispatchRealTimeEvent(req.app, "cancellation_approved", {
         requestId: request._id,
@@ -853,5 +855,19 @@ export const reviewCancellationRequest = async (req, res) => {
     res.status(500).json({ message: error.message || "Failed to review cancellation request" });
   }
 };
+
+// Admin: delete cancellation request
+export const deleteCancellationRequest = async (req, res) => {
+  try {
+    const request = await CancellationRequest.findByIdAndDelete(req.params.requestId);
+    if (!request) {
+      return res.status(404).json({ message: "Cancellation request not found" });
+    }
+    res.json({ message: "Cancellation request deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Failed to delete cancellation request" });
+  }
+};
+
 
 

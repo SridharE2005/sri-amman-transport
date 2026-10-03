@@ -16,6 +16,7 @@ import {
   requestCancellation,
   getCancellationRequests,
   reviewCancellationRequest,
+  deleteCancellationRequest,
 } from "../controllers/bookingController.js";
 import { protect, requireAdmin } from "../middleware/authMiddleware.js";
 
@@ -30,6 +31,8 @@ router.get("/stats", protect, requireAdmin, getBookingStats);
 // Cancellation requests (Admin) - Must come before /:id
 router.get("/cancellation-requests", protect, requireAdmin, getCancellationRequests);
 router.put("/cancellation-requests/:requestId/review", protect, requireAdmin, reviewCancellationRequest);
+router.delete("/cancellation-requests/:requestId", protect, requireAdmin, deleteCancellationRequest);
+
 
 // Booking Cancellation operations (User & Admin)
 router.patch("/:id/cancel", protect, cancelBooking);

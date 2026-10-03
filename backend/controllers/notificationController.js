@@ -10,7 +10,39 @@ export const getMyNotifications = async (req, res) => {
     UsersHistory.find(query).populate("booking", "bookingId").lean(),
   ]);
 
-  res.json([...notifications, ...usersHistory].sort(
-    (first, second) => new Date(second.updatedAt) - new Date(first.updatedAt)
-  ));
+  // Deduplicate entries by booking ID so notifications never appear twice
+  const seenBookings = new Set();
+  const merged = [];
+
+  // Notifications has the most up-to-date cancellation/rejection info
+  for (const item of notifications) {
+    const key = String(item.booking?._id || item.booking || item.bookingId || item._id);
+    if (!seenBookings.has(key)) {
+      seenBookings.add(key);
+      merged.push(item);
+    }
+  }
+
+  for (const item of usersHistory) {
+    const key = String(item.booking?._id || item.booking || item.bookingId || item._id);
+    if (!seenBookings.has(key)) {
+      seenBookings.add(key);
+      merged.push(item);
+    }
+  }
+
+  merged.sort((first, second) => new Date(second.updatedAt) - new Date(first.updatedAt));
+  res.json(merged);
+};
+
+export const markNotificationsAsRead = async (req, res) => {
+  try {
+    await Notifications.updateMany(
+      { user: req.user._id, read: { $ne: true } },
+      { $set: { read: true } }
+    );
+    res.json({ message: "Notifications marked as read" });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to mark notifications as read" });
+  }
 };

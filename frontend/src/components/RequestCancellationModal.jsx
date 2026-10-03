@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
 import API from "../services/api";
 import { useTheme } from "../context/ThemeContext";
@@ -46,13 +47,14 @@ export default function RequestCancellationModal({ booking, onClose, onRequestSu
     }
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0, 0, 0, 0.65)", backdropFilter: "blur(6px)" }}
+      className="fixed inset-0 z-[10001] flex items-center justify-center p-4"
+      style={{ background: "rgba(0, 0, 0, 0.75)", backdropFilter: "blur(8px)" }}
       role="dialog"
       aria-modal="true"
     >
+
       <div
         className="w-full max-w-lg rounded-2xl p-6 shadow-2xl transition-all animate-in fade-in zoom-in-95 duration-200 border"
         style={{
@@ -159,6 +161,8 @@ export default function RequestCancellationModal({ booking, onClose, onRequestSu
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
+

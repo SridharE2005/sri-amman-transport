@@ -26,6 +26,7 @@ const notificationsSchema = new mongoose.Schema({
   orderQty: { type: Number, default: 0 },
   estimatedAmount: { type: Number, default: 0 },
   reason: { type: String, default: "" },
+  read: { type: Boolean, default: false },
 }, { timestamps: true });
 
 notificationsSchema.index({ user: 1, updatedAt: -1 });

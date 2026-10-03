@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import AuthMenu from "./AuthMenu";
 import { useUser } from "../context/UserContext";
 import { useTheme } from "../context/ThemeContext";
+import API from "../services/api";
 import logo from "../assets/main-logo.png";
 import { FiLogOut, FiClock, FiChevronRight, FiShield } from "react-icons/fi";
 
@@ -14,6 +15,7 @@ export default function Navbar() {
   const { theme, toggleTheme, lang, toggleLang, t } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const links = [
     { label: t.home,     path: "/" },
@@ -24,6 +26,60 @@ export default function Navbar() {
   ];
 
   const handleLogout = () => { logout(); nav("/"); setMenuOpen(false); };
+
+  useEffect(() => {
+    if (!user) {
+      setUnreadNotifications(0);
+      return;
+    }
+
+    if (location.pathname === "/notifications") {
+      setUnreadNotifications(0);
+    }
+
+    const fetchNotifications = () => {
+      if (location.pathname === "/notifications") {
+        setUnreadNotifications(0);
+        return;
+      }
+      API.get("/notifications/my")
+        .then((res) => {
+          const list = res.data || [];
+          const now = Date.now();
+          const lastViewed = Number(localStorage.getItem(`notifications_last_viewed_${user._id}`) || 0);
+
+          const seen = new Set();
+          const unique = [];
+          for (const n of list) {
+            const key = String(n.booking?._id || n.booking || n.bookingId || n._id);
+            if (!seen.has(key)) {
+              seen.add(key);
+              unique.push(n);
+            }
+          }
+
+          const unread = unique.filter((n) => {
+            if (n.read) return false;
+            const t = new Date(n.updatedAt).getTime();
+            return t > lastViewed && (now - t < 24 * 60 * 60 * 1000);
+          }).length;
+
+          setUnreadNotifications(unread);
+        })
+        .catch(() => {});
+    };
+
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 20000);
+
+    const onNotificationsViewed = () => setUnreadNotifications(0);
+    window.addEventListener("notifications_viewed", onNotificationsViewed);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("notifications_viewed", onNotificationsViewed);
+    };
+  }, [user, location.pathname]);
 
   useEffect(() => {
     if (location.pathname !== "/" || !location.hash) return;
@@ -52,13 +108,30 @@ export default function Navbar() {
       onClick={() => { nav("/notifications"); setMenuOpen(false); }}
       title="Notifications"
       aria-label="Notifications"
-      className={`${mobile ? "w-full justify-between px-4" : "w-10"} h-9 rounded-xl flex items-center gap-2 ${mobile ? "" : "justify-center"} text-lg border transition`}
+      className={`relative ${mobile ? "w-full justify-between px-4 h-10" : "w-10 h-9 justify-center"} rounded-xl flex items-center gap-2 border transition hover:bg-blue-500/10 cursor-pointer`}
       style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text2)" }}
     >
-      <span>💬</span>
-      {mobile && <span className="text-sm font-semibold">Notifications</span>}
+      <div className="relative flex items-center">
+        <span className="text-base">💬</span>
+        {!mobile && unreadNotifications > 0 && (
+          <span className="absolute -top-2 -right-2.5 min-w-4.5 h-4.5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center animate-pulse shadow-sm">
+            {unreadNotifications}
+          </span>
+        )}
+      </div>
+      {mobile && (
+        <div className="flex items-center justify-between w-full ml-1">
+          <span className="text-sm font-semibold">{lang === "en" ? "Notifications" : "அறிவிப்புகள்"}</span>
+          {unreadNotifications > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white text-xs font-black animate-pulse">
+              {unreadNotifications}
+            </span>
+          )}
+        </div>
+      )}
     </button>
   );
+
 
   const renderLanguageButton = (mobile = false) => {
     if (mobile) {

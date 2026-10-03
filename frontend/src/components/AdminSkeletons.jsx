@@ -378,3 +378,227 @@ export function HistorySkeleton() {
     </div>
   );
 }
+
+/**
+ * 4. MESSAGES & CANCELLATION REQUESTS SKELETON
+ */
+export function MessagesSkeleton() {
+  return (
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div
+          key={i}
+          className="p-4 rounded-2xl border glass flex flex-col justify-between space-y-3.5"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1.5 flex-1 min-w-0">
+              <Skeleton className="w-24 h-4 rounded" />
+              <Skeleton className="w-32 h-5 rounded-md" />
+            </div>
+            <Skeleton className="w-16 h-5 rounded-full" />
+          </div>
+          <div className="space-y-2 py-1">
+            <Skeleton className="w-40 h-4 rounded" />
+            <Skeleton className="w-full h-3 rounded" />
+            <Skeleton className="w-4/5 h-3 rounded" />
+          </div>
+          <div className="pt-2 border-t flex items-center justify-between" style={{ borderColor: "var(--border)" }}>
+            <Skeleton className="w-20 h-4 rounded" />
+            <Skeleton className="w-16 h-7 rounded-lg" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 5. DRIVERS FLEET SKELETON
+ */
+export function DriversSkeleton() {
+  return (
+    <div className="p-5 grid sm:grid-cols-2 xl:grid-cols-3 gap-4 animate-pulse">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div
+          key={i}
+          className="rounded-2xl border p-4 space-y-4"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <Skeleton className="w-12 h-12 rounded-full shrink-0" />
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <Skeleton className="w-28 h-4 rounded" />
+                <Skeleton className="w-20 h-3 rounded" />
+              </div>
+            </div>
+            <Skeleton className="w-16 h-5 rounded-full" />
+          </div>
+          <div className="space-y-2 pt-1">
+            <Skeleton className="w-36 h-3.5 rounded" />
+            <Skeleton className="w-28 h-3.5 rounded" />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Skeleton className="flex-1 h-8 rounded-xl" />
+            <Skeleton className="flex-1 h-8 rounded-xl" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 6. ADD GOODS / CURRENT STOCK SKELETON
+ */
+export function AddGoodsSkeleton() {
+  return (
+    <div className="animate-pulse">
+      {/* Desktop Table View */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr style={{ borderBottom: "1px solid var(--border)" }}>
+              {["Image", "Material", "Details", "Price", "Quantity", "Assigned Driver", "Status", "Actions"].map((h, idx) => (
+                <th key={idx} className="px-5 py-3 text-left">
+                  <Skeleton className="w-16 h-3 rounded" />
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y" style={{ borderColor: "var(--border)" }}>
+            {[1, 2, 3, 4, 5].map((row) => (
+              <tr key={row} className="py-3">
+                <td className="px-5 py-3">
+                  <Skeleton className="w-10 h-10 rounded-xl" />
+                </td>
+                <td className="px-5 py-3 space-y-1">
+                  <Skeleton className="w-24 h-4 rounded" />
+                  <Skeleton className="w-16 h-3 rounded" />
+                </td>
+                <td className="px-5 py-3">
+                  <Skeleton className="w-20 h-4 rounded" />
+                </td>
+                <td className="px-5 py-3">
+                  <Skeleton className="w-16 h-4 rounded" />
+                </td>
+                <td className="px-5 py-3">
+                  <Skeleton className="w-20 h-4 rounded" />
+                </td>
+                <td className="px-5 py-3">
+                  <Skeleton className="w-24 h-4 rounded" />
+                </td>
+                <td className="px-5 py-3">
+                  <Skeleton className="w-16 h-5 rounded-full" />
+                </td>
+                <td className="px-5 py-3">
+                  <div className="flex gap-2">
+                    <Skeleton className="w-12 h-7 rounded-lg" />
+                    <Skeleton className="w-12 h-7 rounded-lg" />
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile Card Skeleton */}
+      <div className="block sm:hidden divide-y" style={{ borderColor: "var(--border)" }}>
+        {[1, 2, 3, 4].map((m) => (
+          <div key={m} className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Skeleton className="w-12 h-12 rounded-xl" />
+                <div className="space-y-1.5">
+                  <Skeleton className="w-28 h-4 rounded" />
+                  <Skeleton className="w-16 h-3 rounded" />
+                </div>
+              </div>
+              <Skeleton className="w-16 h-5 rounded-full" />
+            </div>
+            <div className="space-y-1 pt-1">
+              <Skeleton className="w-32 h-3.5 rounded" />
+              <Skeleton className="w-24 h-3.5 rounded" />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Skeleton className="flex-1 h-8 rounded-xl" />
+              <Skeleton className="flex-1 h-8 rounded-xl" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 7. USER NOTIFICATIONS SKELETON
+ */
+export function NotificationsSkeleton() {
+  return (
+    <div className="space-y-3 animate-pulse">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <article
+          key={i}
+          className="glass p-5 rounded-2xl border space-y-3"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-2 flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Skeleton className="w-20 h-5 rounded-full" />
+                <Skeleton className="w-24 h-4 rounded-md" />
+              </div>
+              <Skeleton className="w-48 h-5 rounded-md" />
+              <Skeleton className="w-full max-w-md h-3.5 rounded" />
+            </div>
+            <Skeleton className="w-16 h-3.5 rounded shrink-0" />
+          </div>
+          <div className="pt-2 border-t flex items-center justify-between" style={{ borderColor: "var(--border)" }}>
+            <Skeleton className="w-28 h-4 rounded" />
+            <Skeleton className="w-20 h-4 rounded" />
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 8. AVAILABLE GOODS / STOCKS SKELETON
+ */
+export function AvailableGoodsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 animate-pulse">
+      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+        <div
+          key={i}
+          className="rounded-2xl border overflow-hidden flex flex-col justify-between"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+        >
+          <Skeleton className="w-full h-44 rounded-none" />
+          <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Skeleton className="w-20 h-4 rounded" />
+                <Skeleton className="w-16 h-5 rounded-full" />
+              </div>
+              <Skeleton className="w-36 h-5 rounded-md" />
+              <Skeleton className="w-28 h-3.5 rounded" />
+            </div>
+            <div className="pt-3 border-t space-y-3" style={{ borderColor: "var(--border)" }}>
+              <div className="flex items-center justify-between">
+                <Skeleton className="w-20 h-5 rounded" />
+                <Skeleton className="w-24 h-4 rounded" />
+              </div>
+              <Skeleton className="w-full h-10 rounded-xl" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+

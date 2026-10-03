@@ -5,6 +5,7 @@ import { compressImages, uploadImages } from "../../services/imageUpload";
 import { FiBox, FiPackage, FiTruck, FiUploadCloud, FiTrash2, FiCamera } from "react-icons/fi";
 import { GiBrickWall, GiStonePile, GiRiver, GiWheat } from "react-icons/gi";
 import { useTheme } from "../../context/ThemeContext";
+import { AddGoodsSkeleton } from "../../components/AdminSkeletons";
 
 const DEFAULT_IMAGES = {
   Bricks: import.meta.env.VITE_DEFAULT_BRICKS_IMAGE_URL || "",
@@ -730,10 +731,7 @@ export default function AddGoods() {
           <p className="font-bold text-base sm:text-sm" style={{ color: "var(--text)" }}>{tr("Current Stock")} — {goods.length} {tr("entries")}</p>
         </div>
         {loading ? (
-          <div className="py-20 flex flex-col items-center justify-center gap-3">
-            <div className="w-8 h-8 border-3 border-violet-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm font-medium" style={{ color: "var(--text3)" }}>{tr("Loading material inventory…")}</p>
-          </div>
+          <AddGoodsSkeleton />
         ) : goods.length === 0 ? (
           <div className="p-12 text-center text-base sm:text-sm" style={{ color: "var(--text3)" }}>No goods added yet. Click "+ Add Goods" to start.</div>
         ) : (

@@ -5,6 +5,7 @@ import API from "../../services/api";
 import { uploadImages } from "../../services/imageUpload";
 import { FiCalendar, FiClock, FiPhone, FiTruck } from "react-icons/fi";
 import { useTheme } from "../../context/ThemeContext";
+import { DriversSkeleton } from "../../components/AdminSkeletons";
 
 const INIT_FORM = { name: "", phone: "", vehicle: "", experience: "", profileImage: "", profileImagePublicId: "" };
 const VEHICLE_TYPES = ["6-Wheel Lorry", "10-Wheel Lorry", "12-Wheel Lorry", "Other Vehicle"];
@@ -196,10 +197,7 @@ export default function Drivers() {
           </div>
 
           {loading ? (
-            <div className="py-20 flex flex-col items-center justify-center gap-3">
-              <div className="w-8 h-8 border-3 border-violet-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm font-medium" style={{ color: "var(--text3)" }}>{tr("Loading driver fleet…")}</p>
-            </div>
+            <DriversSkeleton />
           ) : (
             <div className="p-5 grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {filtered.map((dr) => (

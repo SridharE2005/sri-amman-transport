@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import { useUser } from "../context/UserContext";
 import API from "../services/api";
 import { useTheme } from "../context/ThemeContext";
+import { NotificationsSkeleton } from "../components/AdminSkeletons";
 
 const statusConfig = {
   Pending: "bg-amber-500/10 text-amber-500 border-amber-500/20",
@@ -54,8 +55,26 @@ export default function Notifications() {
     if (!user) return;
     Promise.all([API.get("/notifications/my"), API.get("/feedback/my")])
       .then(([notificationsResponse, feedbackResponse]) => {
-        setNotifications(notificationsResponse.data);
-        setSubmittedFeedback(feedbackResponse.data.map((feedback) => String(feedback.booking)));
+        const raw = notificationsResponse.data || [];
+        // Deduplicate defensively so nothing ever shows twice
+        const seen = new Set();
+        const unique = [];
+        for (const item of raw) {
+          const key = String(item.booking?._id || item.booking || item.bookingId || item._id);
+          if (!seen.has(key)) {
+            seen.add(key);
+            unique.push(item);
+          }
+        }
+        setNotifications(unique);
+        setSubmittedFeedback(feedbackResponse.data?.map((feedback) => String(feedback.booking)) || []);
+
+        // User is viewing notifications now -> clear count indication
+        try {
+          localStorage.setItem(`notifications_last_viewed_${user._id}`, Date.now().toString());
+          window.dispatchEvent(new Event("notifications_viewed"));
+          API.put("/notifications/mark-read", {}, { skipLoading: true, silent: true }).catch(() => {});
+        } catch {}
       })
       .catch(() => toast.error(tr("Failed to load notifications")))
       .finally(() => setFetching(false));
@@ -107,7 +126,7 @@ export default function Notifications() {
         </div>
 
         {fetching ? (
-          <p className="text-center py-16" style={{ color: "var(--text3)" }}>{tr("Loading notifications...")}</p>
+          <NotificationsSkeleton />
         ) : recentNotifications.length === 0 ? (
           <div className="glass p-12 text-center">
             <div className="text-4xl mb-3">💬</div>

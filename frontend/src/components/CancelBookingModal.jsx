@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
 import API from "../services/api";
 import { useTheme } from "../context/ThemeContext";
 import { FiAlertTriangle, FiX } from "react-icons/fi";
+
 
 const PRESET_REASONS = [
   "Changed my plan",
@@ -49,10 +51,10 @@ export default function CancelBookingModal({ booking, onClose, onCancelled }) {
     }
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0, 0, 0, 0.65)", backdropFilter: "blur(6px)" }}
+      className="fixed inset-0 z-[10001] flex items-center justify-center p-4"
+      style={{ background: "rgba(0, 0, 0, 0.75)", backdropFilter: "blur(8px)" }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="cancel-modal-title"
@@ -178,6 +180,8 @@ export default function CancelBookingModal({ booking, onClose, onCancelled }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
+

@@ -10,6 +10,7 @@ import { useUser } from "../context/UserContext";
 import { useTheme } from "../context/ThemeContext";
 import API from "../services/api";
 import { FiClock, FiPhone, FiMapPin, FiSearch, FiNavigation, FiUser, FiTruck } from "react-icons/fi";
+import { AvailableGoodsSkeleton } from "../components/AdminSkeletons";
 
 const MATERIAL_ICON = { Bricks: "🧱", "M-Sand": "⛏️", "Dry Grass Rolls": "🌾", "River Sand": "🏖️" };
 
@@ -825,10 +826,7 @@ export default function Stocks() {
 
         {/* Cards grid */}
         {fetching ? (
-          <div className="py-24 flex flex-col items-center justify-center gap-3">
-            <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm font-medium" style={{ color: "var(--text3)" }}>{tr("Loading available stocks…")}</p>
-          </div>
+          <AvailableGoodsSkeleton />
         ) : filtered.length === 0 ? (
           <div className="py-24 text-center">
             <p className="text-5xl mb-4">📦</p>

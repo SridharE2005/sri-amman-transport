@@ -1,8 +1,9 @@
 // src/pages/admin/AdminLayout.jsx
 import { createElement, useEffect, useState } from "react";
-import { NavLink, useNavigate, Outlet } from "react-router-dom";
+import { NavLink, useNavigate, useLocation, Outlet } from "react-router-dom";
 import { useUser } from "../../context/UserContext";
 import { useTheme } from "../../context/ThemeContext";
+import API from "../../services/api";
 import { toast } from "react-toastify";
 import { FiArchive, FiBox, FiChevronRight, FiClipboard, FiLogOut, FiMessageSquare, FiPieChart, FiStar, FiTruck } from "react-icons/fi";
 import logo from "../../assets/main-logo.png";
@@ -21,7 +22,84 @@ export default function AdminLayout() {
   const { user, loading, logout } = useUser();
   const { theme, toggleTheme, tr } = useTheme();
   const nav = useNavigate();
+  const location = useLocation();
   const [sideOpen, setSideOpen] = useState(false);
+
+  // Live badge alert counters
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [pendingCancellations, setPendingCancellations] = useState(0);
+  const [pendingBookings, setPendingBookings] = useState(0);
+
+  const fetchBadgeCounts = async () => {
+    if (!user || user.role !== "admin") return;
+    try {
+      const [msgRes, cancelRes, bookRes] = await Promise.all([
+        API.get("/messages").catch(() => ({ data: [] })),
+        API.get("/bookings/cancellation-requests?status=PENDING").catch(() => ({ data: [] })),
+        API.get("/bookings").catch(() => ({ data: [] })),
+      ]);
+      const msgs = msgRes.data || [];
+      const cancels = cancelRes.data || [];
+      const books = bookRes.data || [];
+
+      const isMessagesPage = location.pathname.startsWith("/admin/messages");
+      const isBookingsPage = location.pathname.startsWith("/admin/bookings");
+
+      const lastViewedMsgs = Number(localStorage.getItem("admin_last_viewed_messages") || 0);
+      const lastViewedCancels = Number(localStorage.getItem("admin_last_viewed_cancellations") || 0);
+      const lastViewedBooks = Number(localStorage.getItem("admin_last_viewed_bookings") || 0);
+
+      const unreadMsgsCount = isMessagesPage
+        ? 0
+        : msgs.filter((m) => !m.read && new Date(m.createdAt).getTime() > lastViewedMsgs).length;
+
+      const unreadCancelsCount = isMessagesPage
+        ? 0
+        : cancels.filter((c) => new Date(c.requestedAt || c.createdAt).getTime() > lastViewedCancels).length;
+
+      const unreadBooksCount = isBookingsPage
+        ? 0
+        : books.filter(
+            (b) =>
+              (b.status === "Pending" || b.status === "PENDING") &&
+              new Date(b.createdAt || b.updatedAt).getTime() > lastViewedBooks
+          ).length;
+
+      setUnreadMessages(unreadMsgsCount);
+      setPendingCancellations(unreadCancelsCount);
+      setPendingBookings(unreadBooksCount);
+    } catch {
+      /* silent */
+    }
+  };
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/admin/messages")) {
+      try {
+        localStorage.setItem("admin_last_viewed_messages", Date.now().toString());
+        localStorage.setItem("admin_last_viewed_cancellations", Date.now().toString());
+      } catch {}
+      setUnreadMessages(0);
+      setPendingCancellations(0);
+    }
+    if (location.pathname.startsWith("/admin/bookings")) {
+      try {
+        localStorage.setItem("admin_last_viewed_bookings", Date.now().toString());
+      } catch {}
+      setPendingBookings(0);
+    }
+
+    fetchBadgeCounts();
+    const interval = setInterval(fetchBadgeCounts, 15000);
+
+    const onBadgesUpdated = () => fetchBadgeCounts();
+    window.addEventListener("admin_badges_updated", onBadgesUpdated);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("admin_badges_updated", onBadgesUpdated);
+    };
+  }, [user, location.pathname]);
 
   useEffect(() => {
     if (!loading) {
@@ -39,6 +117,9 @@ export default function AdminLayout() {
 
   const handleLogout = () => { logout(); nav("/login"); };
 
+  const totalMessageAlerts = unreadMessages + pendingCancellations;
+  const totalAdminAlerts = totalMessageAlerts + pendingBookings;
+
   const renderSideContent = () => (
     <>
       {/* Logo */}
@@ -52,26 +133,45 @@ export default function AdminLayout() {
 
       {/* Nav links */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV.map(({ to, icon, label, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            onClick={() => setSideOpen(false)}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 ${
-                isActive
-                  ? "bg-violet-500/15 text-violet-500 border border-violet-500/20"
-                  : "hover:bg-white/5"
-              }`
-            }
-            style={({ isActive }) => ({ color: isActive ? undefined : "var(--text2)" })}
-          >
-            {createElement(icon, { className: "text-lg", "aria-hidden": true })}
-            {tr(label)}
-          </NavLink>
-        ))}
+        {NAV.map(({ to, icon, label, end }) => {
+          let badge = null;
+          if (to === "/admin/bookings" && pendingBookings > 0) {
+            badge = (
+              <span className="ml-auto px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-500 text-white shadow-xs">
+                {pendingBookings}
+              </span>
+            );
+          } else if (to === "/admin/messages" && totalMessageAlerts > 0) {
+            badge = (
+              <span className="ml-auto px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-rose-500 text-white shadow-xs animate-pulse">
+                {totalMessageAlerts}
+              </span>
+            );
+          }
+
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              onClick={() => setSideOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 ${
+                  isActive
+                    ? "bg-violet-500/15 text-violet-500 border border-violet-500/20"
+                    : "hover:bg-white/5"
+                }`
+              }
+              style={({ isActive }) => ({ color: isActive ? undefined : "var(--text2)" })}
+            >
+              {createElement(icon, { className: "text-lg", "aria-hidden": true })}
+              <span>{tr(label)}</span>
+              {badge}
+            </NavLink>
+          );
+        })}
       </nav>
+
 
       {/* Bottom */}
       <div className="px-3 pb-5 space-y-2" style={{ borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>
@@ -175,13 +275,18 @@ export default function AdminLayout() {
             </button>
 
             <button
-              className="md:hidden p-2 rounded-lg hover:bg-white/5 transition order-last"
+              className="relative md:hidden p-2 rounded-lg hover:bg-white/5 transition order-last"
               onClick={() => setSideOpen(true)}
               aria-label="Open navigation"
             >
               <span className="block w-5 h-0.5 mb-1" style={{ background: "var(--text)" }} />
               <span className="block w-5 h-0.5 mb-1" style={{ background: "var(--text)" }} />
               <span className="block w-5 h-0.5" style={{ background: "var(--text)" }} />
+              {totalAdminAlerts > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center animate-pulse">
+                  {totalAdminAlerts}
+                </span>
+              )}
             </button>
             <button
               className="hidden md:flex w-9 h-9 rounded-xl items-center justify-center text-lg border transition"

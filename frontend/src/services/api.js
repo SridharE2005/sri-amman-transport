@@ -221,7 +221,17 @@ const API = axios.create({
 // Attach JWT token and track loading with function-specific message
 API.interceptors.request.use((config) => {
   const method = (config.method || "get").toLowerCase();
-  config._tracksLoading = ["post", "put", "patch", "delete"].includes(method);
+  const rawUrl = (config.url || "").toLowerCase();
+  const url = rawUrl.split("?")[0];
+
+  // Exclude background / silent operations and read-status sync from global loading animation
+  const isSilentOp =
+    Boolean(config.skipLoading || config.silent) ||
+    url.includes("/mark-read") ||
+    url.includes("/mark-all-read") ||
+    url.includes("/mark-viewed");
+
+  config._tracksLoading = !isSilentOp && ["post", "put", "patch", "delete"].includes(method);
   if (config._tracksLoading) {
     const details = resolveLoadingDetails(config);
     config._loadingRequestId = startRequest(details);
