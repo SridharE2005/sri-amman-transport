@@ -204,8 +204,18 @@ export function resolveLoadingDetails(config) {
   };
 }
 
+const rawBaseURL =
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_BACKEND_URL ||
+  "http://localhost:5000/api";
+
+const cleanBaseURL = rawBaseURL.trim().replace(/\/$/, "");
+const baseURL = cleanBaseURL.endsWith("/api")
+  ? cleanBaseURL
+  : `${cleanBaseURL}/api`;
+
 const API = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL,
 });
 
 // Attach JWT token and track loading with function-specific message
