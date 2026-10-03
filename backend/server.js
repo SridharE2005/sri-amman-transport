@@ -17,7 +17,20 @@ connectDB();
 
 const app = express();
 
-app.use(cors({ origin: ["http://localhost:5173", "http://localhost:3000","https://passive-compared-scheduling-lets.trycloudflare.com"], credentials: true }));
+const defaultOrigins = ["http://localhost:5173", "http://localhost:3000"];
+const envOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(",")
+      .map((url) => url.trim().replace(/\/$/, ""))
+      .filter(Boolean)
+  : [];
+const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
