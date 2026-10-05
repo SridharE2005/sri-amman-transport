@@ -108,7 +108,11 @@ export default function AdminLayout() {
         nav("/login", { replace: true });
       } else if (user.role !== "admin") {
         toast.error("Access denied. Admin privileges required.");
-        nav("/", { replace: true });
+        if (user.role === "driver") {
+          nav("/driver/dashboard", { replace: true });
+        } else {
+          nav("/", { replace: true });
+        }
       }
     }
   }, [user, loading, nav]);

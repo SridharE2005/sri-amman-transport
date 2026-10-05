@@ -1,4 +1,5 @@
 import express from "express";
+import http from "http";
 import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
@@ -11,11 +12,13 @@ import feedbackRoutes from "./routes/feedbackRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import adminHistoryRoutes from "./routes/adminHistoryRoutes.js";
 import { verifyMailTransport } from "./utils/sendMail.js";
+import { initSocketServer } from "./socket.js";
 
 dotenv.config();
 connectDB();
 
 const app = express();
+const server = http.createServer(app);
 
 const defaultOrigins = ["http://localhost:5173", "http://localhost:3000"];
 const envOrigins = process.env.FRONTEND_URL
@@ -49,7 +52,10 @@ app.use((error, req, res, next) => {
   res.status(500).json({ message: error.message || "Internal server error" });
 });
 
-app.listen(process.env.PORT, () =>
+// Initialize real-time Socket.IO server
+initSocketServer(server, allowedOrigins);
+
+server.listen(process.env.PORT, () =>
   console.log(`Server running on port ${process.env.PORT}`)
 );
 

@@ -63,6 +63,7 @@ const historyData = (booking, status, reason = "") => ({
   cancelledBy: booking.cancelledBy || null,
   cancellationReason: booking.cancellationReason || null,
   driverData: status === "Confirmed" ? booking.driverData : undefined,
+  read: false,
 });
 
 const saveApprovedHistory = (booking, status, reason = "") => UsersHistory.findOneAndUpdate(
@@ -564,6 +565,7 @@ export const cancelBooking = async (req, res) => {
           orderQty: updatedBooking.orderQty || 0,
           estimatedAmount: updatedBooking.estimatedAmount || 0,
           reason,
+          read: false,
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       ),
@@ -803,6 +805,7 @@ export const reviewCancellationRequest = async (req, res) => {
             orderQty: booking.orderQty || 0,
             estimatedAmount: booking.estimatedAmount || 0,
             reason: reasonText,
+            read: false,
           },
           { upsert: true, new: true, setDefaultsOnInsert: true }
         ),
@@ -838,6 +841,7 @@ export const reviewCancellationRequest = async (req, res) => {
         orderQty: booking.orderQty || 0,
         estimatedAmount: booking.estimatedAmount || 0,
         reason: adminNotes || "Cancellation request rejected by admin",
+        read: false,
       });
 
       dispatchRealTimeEvent(req.app, "cancellation_rejected", {

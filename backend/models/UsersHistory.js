@@ -31,6 +31,7 @@ const usersHistorySchema = new mongoose.Schema({
     phone: { type: String, default: "" },
     vehicle: { type: String, default: "" },
   },
+  read: { type: Boolean, default: false },
 }, { timestamps: true });
 
 usersHistorySchema.index({ user: 1, updatedAt: -1 });

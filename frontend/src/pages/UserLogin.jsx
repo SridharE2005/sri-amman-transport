@@ -18,7 +18,12 @@ export default function UserLogin() {
   useEffect(() => {
     if (user) {
       if (user.role === "admin") nav("/admin", { replace: true });
-      else nav("/", { replace: true });
+      else if (user.role === "driver") {
+        toast.info("Driver access has moved to the Driver Mobile App.");
+        nav("/", { replace: true });
+      } else {
+        nav("/", { replace: true });
+      }
     }
   }, [user, nav]);
 
@@ -29,12 +34,23 @@ export default function UserLogin() {
     setLoading(true);
     try {
       const { data } = await API.post("/auth/login", form);
+
+      // Restrict driver login from web - Drivers must use the React Native mobile app
+      if (data.user?.role === "driver") {
+        toast.warn(
+          "Driver Portal has moved to the Mobile App! Please log in using the Sri Amman Transport Driver App.",
+          { autoClose: 6000 }
+        );
+        return;
+      }
+
       login(data.token, data.user, remember);
+      const name = data.user.firstName || data.user.fullName || "User";
       if (data.user.role === "admin") {
-        toast.success(`Welcome Admin, ${data.user.firstName}!`);
+        toast.success(`Welcome Admin, ${name}!`);
         nav("/admin");
       } else {
-        toast.success(`${tr("Welcome back")}, ${data.user.firstName}!`);
+        toast.success(`${tr("Welcome back")}, ${name}!`);
         nav("/");
       }
     } catch (err) {
@@ -62,7 +78,7 @@ export default function UserLogin() {
 
         <div className="glass p-8">
           <h2 className="text-2xl font-bold mb-1" style={{ color: "var(--text)" }}>{tr("Sign In")}</h2>
-          <p className="text-sm mb-7" style={{ color: "var(--text3)" }}>{tr("Access your transport dashboard")}</p>
+          <p className="text-sm mb-6" style={{ color: "var(--text3)" }}>{tr("Access your transport dashboard")}</p>
 
           <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: "var(--text3)" }}>{tr("Email")}</label>
           <input className="input" type="email" placeholder="you@example.com" value={form.email} onChange={set("email")} />

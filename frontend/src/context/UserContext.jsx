@@ -8,13 +8,19 @@ export function UserProvider({ children }) {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const normalizeUser = (u) => {
+    if (!u) return null;
+    const resolvedId = u._id || u.id;
+    return { ...u, _id: resolvedId, id: resolvedId };
+  };
+
   // On mount, if a token exists fetch the user profile from DB
   useEffect(() => {
     const token = localStorage.getItem("token") || sessionStorage.getItem("token");
     if (!token) { setLoading(false); return; }
 
     API.get("/auth/me")
-      .then(({ data }) => setUser(data))
+      .then(({ data }) => setUser(normalizeUser(data)))
       .catch(() => {
         localStorage.removeItem("token");
         sessionStorage.removeItem("token");
@@ -24,7 +30,7 @@ export function UserProvider({ children }) {
 
   const login = (token, userData, remember = false) => {
     (remember ? localStorage : sessionStorage).setItem("token", token);
-    setUser(userData);
+    setUser(normalizeUser(userData));
   };
 
   const logout = () => {
@@ -33,7 +39,7 @@ export function UserProvider({ children }) {
     setUser(null);
   };
 
-  const updateUser = (updatedUser) => setUser(updatedUser);
+  const updateUser = (updatedUser) => setUser(normalizeUser(updatedUser));
 
   return (
     <UserContext.Provider value={{ user, loading, login, logout, updateUser }}>

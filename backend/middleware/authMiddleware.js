@@ -23,3 +23,10 @@ export const requireAdmin = (req, res, next) => {
   }
   next();
 };
+
+export const requireDriver = (req, res, next) => {
+  if (!req.user || req.user.role !== "driver") {
+    return res.status(403).json({ message: "Access denied. Driver privileges required." });
+  }
+  next();
+};

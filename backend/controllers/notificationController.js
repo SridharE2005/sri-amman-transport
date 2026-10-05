@@ -19,7 +19,7 @@ export const getMyNotifications = async (req, res) => {
     const key = String(item.booking?._id || item.booking || item.bookingId || item._id);
     if (!seenBookings.has(key)) {
       seenBookings.add(key);
-      merged.push(item);
+      merged.push({ ...item, read: Boolean(item.read) });
     }
   }
 
@@ -27,7 +27,7 @@ export const getMyNotifications = async (req, res) => {
     const key = String(item.booking?._id || item.booking || item.bookingId || item._id);
     if (!seenBookings.has(key)) {
       seenBookings.add(key);
-      merged.push(item);
+      merged.push({ ...item, read: Boolean(item.read) });
     }
   }
 
@@ -37,10 +37,16 @@ export const getMyNotifications = async (req, res) => {
 
 export const markNotificationsAsRead = async (req, res) => {
   try {
-    await Notifications.updateMany(
-      { user: req.user._id, read: { $ne: true } },
-      { $set: { read: true } }
-    );
+    await Promise.all([
+      Notifications.updateMany(
+        { user: req.user._id, read: { $ne: true } },
+        { $set: { read: true } }
+      ),
+      UsersHistory.updateMany(
+        { user: req.user._id, read: { $ne: true } },
+        { $set: { read: true } }
+      ),
+    ]);
     res.json({ message: "Notifications marked as read" });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to mark notifications as read" });

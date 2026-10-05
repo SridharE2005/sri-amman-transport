@@ -71,7 +71,8 @@ export default function Notifications() {
 
         // User is viewing notifications now -> clear count indication
         try {
-          localStorage.setItem(`notifications_last_viewed_${user._id}`, Date.now().toString());
+          const userId = user._id || user.id;
+          localStorage.setItem(`notifications_last_viewed_${userId}`, Date.now().toString());
           window.dispatchEvent(new Event("notifications_viewed"));
           API.put("/notifications/mark-read", {}, { skipLoading: true, silent: true }).catch(() => {});
         } catch {}
@@ -187,7 +188,7 @@ export default function Notifications() {
         )}
       </main>
       {feedbackBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(5px)" }}>
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4 animate-in fade-in duration-200" style={{ background: "rgba(0,0,0,0.78)", backdropFilter: "blur(6px)" }}>
           <div className="w-full max-w-lg rounded-2xl p-6" style={{ background: "var(--bg3)", border: "1px solid var(--border)" }}>
             <div className="flex items-start justify-between mb-5"><div><h2 className="text-xl font-extrabold" style={{ color: "var(--text)" }}>Share your feedback</h2><p className="text-sm mt-1" style={{ color: "var(--text3)" }}>{feedbackBooking.material} service</p></div><button onClick={() => setFeedbackBooking(null)} style={{ color: "var(--text3)" }}>✕</button></div>
             <div className="space-y-4">

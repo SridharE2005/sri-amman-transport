@@ -70,33 +70,48 @@ export const loginUser = async (req, res) => {
     { expiresIn: "7d" }
   );
 
+  const displayName = user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim();
+
   res.json({
     token,
     user: {
       id:           user._id,
-      firstName:    user.firstName,
-      lastName:     user.lastName,
+      firstName:    user.firstName || displayName,
+      lastName:     user.lastName || "",
+      fullName:     displayName,
       email:        user.email,
       phoneNumber:  user.phoneNumber || "",
       profileImage: user.profileImage || DEFAULT_AVATARS[0].url,
       avatarType:   user.avatarType || (isDefaultAvatar(user.profileImage) ? "default" : "custom"),
       role:         user.role,
+      vehicleNumber: user.vehicleNumber || "",
+      vehicleType:  user.vehicleType || "",
+      district:     user.district || "",
+      status:       user.status || "NOT CHECKED IN",
+      checkedInAt:  user.checkedInAt || null,
     },
   });
 };
 
 // Get current user from DB (protected)
 export const getMe = (req, res) => {
-  const { _id, firstName, lastName, email, phoneNumber, profileImage, avatarType, role, createdAt } = req.user;
+  const { _id, firstName, lastName, fullName, email, phoneNumber, profileImage, avatarType, role, vehicleNumber, vehicleType, district, status, checkedInAt, createdAt } = req.user;
+  const displayName = fullName || `${firstName || ""} ${lastName || ""}`.trim();
   res.json({
     id: _id,
-    firstName,
-    lastName,
+    firstName: firstName || displayName,
+    lastName: lastName || "",
+    fullName: displayName,
     email,
     phoneNumber: phoneNumber || "",
     profileImage: profileImage || DEFAULT_AVATARS[0].url,
     avatarType: avatarType || (isDefaultAvatar(profileImage) ? "default" : "custom"),
     role,
+    vehicleNumber: vehicleNumber || "",
+    vehicleType: vehicleType || "",
+    district: district || "",
+    status: status || "NOT CHECKED IN",
+    checkedInAt: checkedInAt || null,
     createdAt,
   });
 };

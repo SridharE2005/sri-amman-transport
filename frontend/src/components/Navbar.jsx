@@ -6,7 +6,7 @@ import { useUser } from "../context/UserContext";
 import { useTheme } from "../context/ThemeContext";
 import API from "../services/api";
 import logo from "../assets/main-logo.png";
-import { FiLogOut, FiClock, FiChevronRight, FiShield } from "react-icons/fi";
+import { FiLogOut, FiClock, FiChevronRight, FiShield, FiTruck } from "react-icons/fi";
 
 export default function Navbar() {
   const nav = useNavigate();
@@ -46,7 +46,8 @@ export default function Navbar() {
         .then((res) => {
           const list = res.data || [];
           const now = Date.now();
-          const lastViewed = Number(localStorage.getItem(`notifications_last_viewed_${user._id}`) || 0);
+          const userId = user._id || user.id;
+          const lastViewed = Number(localStorage.getItem(`notifications_last_viewed_${userId}`) || 0);
 
           const seen = new Set();
           const unique = [];
@@ -61,7 +62,9 @@ export default function Navbar() {
           const unread = unique.filter((n) => {
             if (n.read) return false;
             const t = new Date(n.updatedAt).getTime();
-            return t > lastViewed && (now - t < 24 * 60 * 60 * 1000);
+            if (now - t >= 24 * 60 * 60 * 1000) return false;
+            if (lastViewed && t <= lastViewed) return false;
+            return true;
           }).length;
 
           setUnreadNotifications(unread);
@@ -237,6 +240,16 @@ export default function Navbar() {
                     <span>Admin Panel</span>
                   </button>
                 )}
+                {user.role === "driver" && (
+                  <button
+                    onClick={() => nav("/driver/dashboard")}
+                    title="Open Driver Dashboard"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 text-xs font-bold transition cursor-pointer"
+                  >
+                    <FiTruck className="text-sm" />
+                    <span>Driver Panel</span>
+                  </button>
+                )}
                 <button
                   onClick={() => nav("/profile")}
                   title="Open profile"
@@ -253,6 +266,9 @@ export default function Navbar() {
                   <span className="text-sm font-medium" style={{ color: "var(--text2)" }}>{user.firstName}</span>
                   {user.role === "admin" && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-500 border border-violet-500/20">Admin</span>
+                  )}
+                  {user.role === "driver" && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 border border-emerald-500/20">Driver</span>
                   )}
                 </button>
                 <button
@@ -333,6 +349,18 @@ export default function Navbar() {
                   <div className="flex items-center gap-3">
                     <FiShield className="text-base text-violet-500" />
                     <span>Admin Panel</span>
+                  </div>
+                  <FiChevronRight className="text-sm opacity-50" />
+                </button>
+              ) : user.role === "driver" ? (
+                <button
+                  onClick={() => { nav("/driver/dashboard"); setMenuOpen(false); }}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-left text-sm font-medium hover:bg-emerald-500/10 transition"
+                  style={{ color: "var(--text2)" }}
+                >
+                  <div className="flex items-center gap-3">
+                    <FiTruck className="text-base text-emerald-500" />
+                    <span>Driver Dashboard</span>
                   </div>
                   <FiChevronRight className="text-sm opacity-50" />
                 </button>

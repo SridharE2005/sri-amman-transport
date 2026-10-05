@@ -28,6 +28,10 @@ import BookingHistoryAdmin from "./pages/admin/BookingHistory";
 import Ratings           from "./pages/admin/Ratings";
 import Messages    from "./pages/admin/Messages";
 import Drivers     from "./pages/admin/Drivers";
+import DriverDetails from "./pages/admin/DriverDetails";
+import DriverLiveTracking from "./pages/admin/DriverLiveTracking";
+
+import DriverAppNotice from "./pages/driver/DriverAppNotice";
 
 import useScrollReveal from "./hooks/useScrollReveal";
 
@@ -79,8 +83,14 @@ export default function App() {
               <Route path="ratings" element={<Ratings />} />
               <Route path="messages" element={<Messages />} />
               <Route path="drivers"  element={<Drivers />} />
+              <Route path="drivers/:driverId" element={<DriverDetails />} />
+              <Route path="drivers/:driverId/live-tracking" element={<DriverLiveTracking />} />
             </Route>
-              <Route path="*" element={<NotFound />} />
+
+            {/* Driver routes — redirected to mobile app notice */}
+            <Route path="/driver/*" element={<DriverAppNotice />} />
+
+            <Route path="*" element={<NotFound />} />
             </Routes>
           </UserProvider>
         </LoadingProvider>
