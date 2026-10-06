@@ -3,7 +3,7 @@ import User from "../models/User.js";
 import DriverCheckIn from "../models/DriverCheckIn.js";
 import bcrypt from "bcryptjs";
 import { deleteCloudinaryImages } from "../utils/cloudinary.js";
-import { getIO } from "../socket.js";
+import { getIO, recordDriverLocation } from "../socket.js";
 
 // Admin / Public: get all drivers
 export const getDrivers = async (req, res) => {
@@ -533,3 +533,18 @@ export const checkOutDriver = async (req, res) => {
     tracking: user.tracking,
   });
 };
+
+// Driver: Update real-time GPS location via REST (HTTP fallback when WebSocket drops in background)
+export const updateDriverLocation = async (req, res) => {
+  try {
+    const result = await recordDriverLocation(req.user._id, req.body);
+    res.json(result);
+  } catch (err) {
+    const isClientError =
+      err.message.includes("checked in") ||
+      err.message.includes("Invalid latitude") ||
+      err.message.includes("not found");
+    res.status(isClientError ? 400 : 500).json({ message: err.message });
+  }
+};
+

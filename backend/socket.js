@@ -4,11 +4,131 @@ import jwt from "jsonwebtoken";
 import User from "./models/User.js";
 
 let ioInstance = null;
+const driverDisconnectTimers = new Map();
+
+export const clearDriverDisconnectTimer = (driverId) => {
+  const idStr = driverId?.toString();
+  if (idStr && driverDisconnectTimers.has(idStr)) {
+    clearTimeout(driverDisconnectTimers.get(idStr));
+    driverDisconnectTimers.delete(idStr);
+  }
+};
+
+/**
+ * Common handler to record driver location from either Socket.IO or REST API
+ */
+export const recordDriverLocation = async (driverId, data) => {
+  clearDriverDisconnectTimer(driverId);
+
+  const driver = await User.findById(driverId);
+  if (!driver) throw new Error("Driver account not found");
+
+  if (!driver.isCheckedIn && driver.status !== "CHECKED IN") {
+    throw new Error("Driver must be checked in to send location");
+  }
+
+  const latitude = Number(data.latitude);
+  const longitude = Number(data.longitude);
+  if (isNaN(latitude) || isNaN(longitude)) {
+    throw new Error("Invalid latitude or longitude");
+  }
+
+  const accuracy = Number(data.accuracy) || 0;
+  const speed =
+    data.speed !== null && data.speed !== undefined && !isNaN(Number(data.speed))
+      ? Number(data.speed)
+      : null;
+  const heading =
+    data.heading !== null && data.heading !== undefined && !isNaN(Number(data.heading))
+      ? Number(data.heading)
+      : null;
+  const now = new Date();
+
+  const updateFields = {
+    "tracking.isOnline": true,
+    "tracking.latitude": latitude,
+    "tracking.longitude": longitude,
+    "tracking.accuracy": accuracy,
+    "tracking.speed": speed,
+    "tracking.heading": heading,
+    "tracking.lastUpdated": now,
+    "lastLocation.latitude": latitude,
+    "lastLocation.longitude": longitude,
+    "lastLocation.accuracy": accuracy,
+    "lastLocation.speed": speed,
+    "lastLocation.heading": heading,
+    "lastLocation.updatedAt": now,
+  };
+
+  if (data.area) {
+    updateFields["tracking.area"] = data.area;
+    updateFields["lastLocation.area"] = data.area;
+  }
+  if (data.road) {
+    updateFields["tracking.road"] = data.road;
+    updateFields["lastLocation.road"] = data.road;
+  }
+  if (data.state) {
+    updateFields["tracking.state"] = data.state;
+    updateFields["lastLocation.state"] = data.state;
+  }
+  if (data.district) {
+    updateFields["tracking.district"] = data.district;
+    updateFields["lastLocation.district"] = data.district;
+  }
+  if (data.postcode) {
+    updateFields["tracking.postcode"] = data.postcode;
+    updateFields["lastLocation.postcode"] = data.postcode;
+  }
+  if (data.fullAddress) {
+    updateFields["tracking.fullAddress"] = data.fullAddress;
+    updateFields["lastLocation.fullAddress"] = data.fullAddress;
+  }
+
+  await User.findByIdAndUpdate(driver._id, { $set: updateFields });
+
+  const broadcastPayload = {
+    driverId: driver._id,
+    userId: driver._id,
+    fleetDriverId: driver.driverId || null,
+    driverName: driver.fullName || `${driver.firstName || ""} ${driver.lastName || ""}`.trim(),
+    vehicleNumber: driver.vehicleNumber || "N/A",
+    vehicleType: driver.vehicleType || "Lorry",
+    district: data.district || driver.district || "Salem",
+    area: data.area || null,
+    road: data.road || null,
+    state: data.state || null,
+    postcode: data.postcode || null,
+    fullAddress: data.fullAddress || null,
+    latitude,
+    longitude,
+    accuracy,
+    speed,
+    heading,
+    checkedInAt: driver.checkedInAt || null,
+    isCheckedIn: Boolean(driver.isCheckedIn || driver.status === "CHECKED IN"),
+    timestamp: data.timestamp || now.getTime(),
+    lastUpdated: now.toISOString(),
+  };
+
+  if (ioInstance) {
+    ioInstance.to("admins").emit("admin:driver_location", broadcastPayload);
+  }
+
+  return { success: true, timestamp: now.toISOString() };
+};
 
 export const initSocketServer = (httpServer, allowedOrigins) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: allowedOrigins,
+      origin: (origin, callback) => {
+        // Allow mobile apps, curl, non-browser clients with no origin
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(null, true);
+      },
       credentials: true,
       methods: ["GET", "POST", "PATCH", "PUT"],
     },
@@ -54,7 +174,6 @@ export const initSocketServer = (httpServer, allowedOrigins) => {
       socket.join("admins");
       console.log(`[Socket.IO] Admin connected: ${user.email} (Socket: ${socket.id})`);
 
-      // Allow admin to request all currently online / checked-in drivers immediately
       socket.on("admin:request_active_drivers", async (ack) => {
         try {
           const activeDrivers = await User.find({
@@ -94,121 +213,30 @@ export const initSocketServer = (httpServer, allowedOrigins) => {
     // 2. Driver clients join their own channel
     if (user.role === "driver") {
       socket.join(`driver:${user._id}`);
-      console.log(`[Socket.IO] Driver connected: ${displayName} (${user.email})`);
+      clearDriverDisconnectTimer(user._id);
 
-      // TASK 2 & 3: Handle real-time GPS location emissions from drivers
+      // Immediately restore isOnline = true in DB and notify admins
+      User.findByIdAndUpdate(user._id, { $set: { "tracking.isOnline": true } })
+        .then(() => {
+          io.to("admins").emit("admin:driver_status_change", {
+            driverId: user._id,
+            userId: user._id,
+            isOnline: true,
+            lastUpdated: new Date().toISOString(),
+          });
+        })
+        .catch((err) => console.warn("[Socket.IO] Error setting driver online on reconnect:", err.message));
+
+      console.log(`[Socket.IO] Driver connected/reconnected: ${displayName} (${user.email})`);
+
       socket.on("driver:location", async (data, ack) => {
         try {
-          // Security checks (TASK 3)
-          // 1. Authenticate user exists and is a driver
           if (!socket.user || socket.user.role !== "driver") {
             if (typeof ack === "function") ack({ error: "Unauthorized: Driver role required" });
             return;
           }
-
-          // 2. Verify driver is currently checked in
-          const driver = await User.findById(socket.user._id);
-          if (!driver) {
-            if (typeof ack === "function") ack({ error: "Driver account not found" });
-            return;
-          }
-
-          if (!driver.isCheckedIn && driver.status !== "CHECKED IN") {
-            if (typeof ack === "function") ack({ error: "Driver must be checked in to send location" });
-            return;
-          }
-
-          // 3. Validate GPS coordinates
-          const latitude = Number(data.latitude);
-          const longitude = Number(data.longitude);
-          if (isNaN(latitude) || isNaN(longitude)) {
-            if (typeof ack === "function") ack({ error: "Invalid latitude or longitude" });
-            return;
-          }
-
-          const accuracy = Number(data.accuracy) || 0;
-          const speed = data.speed !== null && data.speed !== undefined && !isNaN(Number(data.speed))
-            ? Number(data.speed)
-            : null;
-          const heading = data.heading !== null && data.heading !== undefined && !isNaN(Number(data.heading))
-            ? Number(data.heading)
-            : null;
-          const now = new Date();
-
-          // 4. Update the driver's latest location (TASK 4: Do NOT save every GPS update as a new MongoDB document)
-          const updateFields = {
-            "tracking.isOnline": true,
-            "tracking.latitude": latitude,
-            "tracking.longitude": longitude,
-            "tracking.accuracy": accuracy,
-            "tracking.speed": speed,
-            "tracking.heading": heading,
-            "tracking.lastUpdated": now,
-            "lastLocation.latitude": latitude,
-            "lastLocation.longitude": longitude,
-            "lastLocation.accuracy": accuracy,
-            "lastLocation.speed": speed,
-            "lastLocation.heading": heading,
-            "lastLocation.updatedAt": now,
-          };
-
-          if (data.area) {
-            updateFields["tracking.area"] = data.area;
-            updateFields["lastLocation.area"] = data.area;
-          }
-          if (data.road) {
-            updateFields["tracking.road"] = data.road;
-            updateFields["lastLocation.road"] = data.road;
-          }
-          if (data.state) {
-            updateFields["tracking.state"] = data.state;
-            updateFields["lastLocation.state"] = data.state;
-          }
-          if (data.district) {
-            updateFields["tracking.district"] = data.district;
-            updateFields["lastLocation.district"] = data.district;
-          }
-          if (data.postcode) {
-            updateFields["tracking.postcode"] = data.postcode;
-            updateFields["lastLocation.postcode"] = data.postcode;
-          }
-          if (data.fullAddress) {
-            updateFields["tracking.fullAddress"] = data.fullAddress;
-            updateFields["lastLocation.fullAddress"] = data.fullAddress;
-          }
-
-          await User.findByIdAndUpdate(driver._id, { $set: updateFields });
-
-          // 5. Broadcast location to authorized admin clients in 'admins' room
-          const broadcastPayload = {
-            driverId: driver._id,
-            userId: driver._id,
-            fleetDriverId: driver.driverId || null,
-            driverName: driver.fullName || `${driver.firstName || ""} ${driver.lastName || ""}`.trim(),
-            vehicleNumber: driver.vehicleNumber || "N/A",
-            vehicleType: driver.vehicleType || "Lorry",
-            district: data.district || driver.district || "Salem",
-            area: data.area || null,
-            road: data.road || null,
-            state: data.state || null,
-            postcode: data.postcode || null,
-            fullAddress: data.fullAddress || null,
-            latitude,
-            longitude,
-            accuracy,
-            speed,
-            heading,
-            checkedInAt: driver.checkedInAt || null,
-            isCheckedIn: Boolean(driver.isCheckedIn || driver.status === "CHECKED IN"),
-            timestamp: data.timestamp || now.getTime(),
-            lastUpdated: now.toISOString(),
-          };
-
-          io.to("admins").emit("admin:driver_location", broadcastPayload);
-
-          if (typeof ack === "function") {
-            ack({ success: true, timestamp: now.toISOString() });
-          }
+          const result = await recordDriverLocation(socket.user._id, data);
+          if (typeof ack === "function") ack(result);
         } catch (err) {
           console.error("[Socket.IO] Error handling driver:location:", err.message);
           if (typeof ack === "function") ack({ error: err.message });
@@ -216,22 +244,33 @@ export const initSocketServer = (httpServer, allowedOrigins) => {
       });
     }
 
-    socket.on("disconnect", async (reason) => {
+    socket.on("disconnect", (reason) => {
       if (user.role === "driver") {
-        try {
-          await User.findByIdAndUpdate(user._id, {
-            $set: { "tracking.isOnline": false },
-          });
-          io.to("admins").emit("admin:driver_status_change", {
-            driverId: user._id,
-            userId: user._id,
-            isOnline: false,
-            lastUpdated: new Date().toISOString(),
-          });
-          console.log(`[Socket.IO] Driver ${displayName} disconnected (${reason})`);
-        } catch (err) {
-          console.error("[Socket.IO] Error handling driver disconnect:", err.message);
-        }
+        console.log(`[Socket.IO] Driver ${displayName} disconnected (${reason}). Starting 45s grace period...`);
+
+        // Start 45-second grace period before marking offline
+        clearDriverDisconnectTimer(user._id);
+        const timer = setTimeout(async () => {
+          try {
+            // Check if driver is still disconnected
+            await User.findByIdAndUpdate(user._id, {
+              $set: { "tracking.isOnline": false },
+            });
+            io.to("admins").emit("admin:driver_status_change", {
+              driverId: user._id,
+              userId: user._id,
+              isOnline: false,
+              lastUpdated: new Date().toISOString(),
+            });
+            console.log(`[Socket.IO] Driver ${displayName} marked OFFLINE after grace period expired.`);
+          } catch (err) {
+            console.error("[Socket.IO] Error in disconnect grace timer:", err.message);
+          } finally {
+            driverDisconnectTimers.delete(user._id.toString());
+          }
+        }, 45000); // 45 seconds grace period for cellular network switches & app background sleep
+
+        driverDisconnectTimers.set(user._id.toString(), timer);
       }
     });
   });
